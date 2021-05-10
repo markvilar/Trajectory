@@ -1,8 +1,8 @@
+from typing import Dict, List
+
 import numpy as np
 import pandas as pd
-import quaternion 
-
-from typing import Dict, List
+import quaternion as quat
 
 def unclamp_signal(data: np.ndarray, min_value: float, max_value: float, \
     threshold: float=0.95):
@@ -35,20 +35,56 @@ def closest_point(reference, data):
     value = relative[index]
     return index, value
 
-def quaternion_from_axis_angle(axis: np.ndarray, angle: float):
+
+# ------------------------------------------------------------------------------
+# ---- Quaternions. ------------------------------------------------------------
+# ------------------------------------------------------------------------------
+
+# Axis-angle.
+
+def quat_from_axis_angle(axis: np.ndarray, angle: float):
     assert axis.shape == (3,), "The axis vector must be (3,)."
     assert np.linalg.norm(axis) == 1.0, "The axis vector must have norm 1."
-    imaginary = np.sin(angle/2) * axis
     real = np.cos(angle/2)
-    return quaternion.quaternion(real, imaginary[0], imaginary[1], imaginary[2])
+    imaginary = np.sin(angle/2) * axis
+    return quat.quaternion(real, imaginary[0], imaginary[1], imaginary[2])
 
-def vector_to_quaternion(vectors: np.ndarray):
-    n = vectors.shape[0]
-    quats = np.zeros(( n, 4 ), dtype=float)
-    quats[:, 1:4] = vectors
-    return quaternion.as_quat_array(quats)
+# Vector 3.
 
-def quaternion_to_vector(quats: np.ndarray):
-    quats = quaternion.as_float_array(quats)
-    vectors = quats[:, 1:4]
-    return vectors
+def vec3_to_quat(vec: np.ndarray):
+    assert vec.shape == (3,), "Vector must be (3,)."
+    return quat.quaternion(0.0, vec[0], vec[1], vec[2])
+
+def quat_to_vec3(q: np.ndarray):
+    assert type(q) == quat.quaternion, "Invalid type."
+    v = quat.as_float_array(q)
+    return v[1:]
+
+def vec3_array_to_quat_array(vecs: np.ndarray):
+    assert vecs.ndim == 2, "Invalid vectors dimension."
+    assert vecs.shape[1] == 3, "Invalid vectors length."
+    vs = np.zeros((len(vecs), 4))
+    vs[:, 1:] = vecs
+    return quat.as_quat_array(vs)
+
+def quat_array_to_vec3_array(qs: np.ndarray):
+    vs = quat.as_float_array(qs)
+    return vs[:, 1:]
+
+# Vector 4.
+
+def vec4_to_quat(vec: np.ndarray):
+    assert vec.shape == (4,), "Vector must be (4,)."
+    return quat.quaternion(vec[0], vec[1], vec[2], vec[3])
+
+def quat_to_vec4(q: np.ndarray):
+    assert type(q) == quat.quaternion, "Invalid type."
+    return quat.as_float_array(q)
+
+def vec4_array_to_quat_array(vecs: np.ndarray):
+    assert vecs.ndim == 2, "Invalid vectors dimension."
+    assert vecs.shape[1] == 4, "Invalid vectors length."
+    return quat.as_quat_array(vecs)
+
+def quat_array_to_vec4_array(qs: np.ndarray):
+    return quat.as_float_array(qs)

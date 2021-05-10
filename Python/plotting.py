@@ -37,17 +37,16 @@ def set_axes_equal(ax):
     ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
 
 
-def plot_3D_trajectory(trajectory: np.array, figsize: Tuple=(6, 6), \
-    label: str="", xlabel: str="", ylabel: str="", zlabel: str="", \
-    title: str="", legend: bool=False, equal_axes: bool=False):
+def plot_3D_line(x: np.array, y: np.array, z: np.array, \
+    figsize: Tuple=(6, 6), label: str="", xlabel: str="", ylabel: str="", \
+    zlabel: str="", title: str="", legend: bool=False, equal_axes: bool=False):
     """
     Parameters
     ----------
-    trajectory: (N, 3), the trajectory
     """
     fig, ax = plt.subplots(figsize=figsize)
     ax = fig.add_subplot(111, projection='3d')
-    ax.plot(trajectory[:, 0], trajectory[:, 1], trajectory[:, 2], label=label)
+    ax.plot(x, y, z, label=label)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_zlabel(zlabel)
@@ -56,3 +55,23 @@ def plot_3D_trajectory(trajectory: np.array, figsize: Tuple=(6, 6), \
         set_axes_equal(ax)
 
     return (fig, ax)
+
+def plot_3D_scatter(x: np.array, y: np.array, z: np.array, size: float=0.5, \
+    figsize: Tuple=(6, 6), label: str="", xlabel: str="", ylabel: str="", \
+    zlabel: str="", title: str="", legend: bool=False, equal_axes: bool=False):
+    """
+    Parameters
+    ----------
+    """
+    fig, ax = plt.subplots(figsize=figsize)
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(x, y, z, s=size, label=label)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_zlabel(zlabel)
+    ax.set_title(title)
+    if equal_axes:
+        set_axes_equal(ax)
+
+    return (fig, ax)
+

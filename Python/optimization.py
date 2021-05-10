@@ -1,139 +1,133 @@
-from typing import Dict, Tuple
+import copy
 
-import matplotlib
-matplotlib.use("TkAgg")
-import matplotlib.pyplot as plt
-plt.style.use("./Styles/Scientific.mplstyle")
-
-import msgpack
 import numpy as np
-import quaternion 
+import quaternion as quat
 
-import alignment
-import utilities
+from ssdts_matching import dynamic_timestamp_match
 
-from map import MapUnpacker
-from plotting import plot_3D_trajectory
-from series import DataSeries
-from trajectory import Trajectory
+from data_structures import Trajectory
+from utilities import closest_point
 
+class OptimizationResult:
+    def __init__(self, bias, scale, rotation, translation, keyframes, \
+        ground_truth):
+        self.bias = bias
+        self.scale = scale
+        self.rotation = rotation
+        self.translation = translation
+        self.matched_keyframes = keyframes
+        self.matched_ground_truth = ground_truth
 
-def format_slam_trajectory(data: Dict, key: str):
-    timestamps = np.array(data[key]["TimestampSynced"])
-    
-    positions = np.stack([ data[key]["PositionX"], data[key]["PositionY"], \
-        data[key]["PositionZ"] ]).T
-    
-    attitudes = np.stack([ data[key]["Quaternion1"], data[key]["Quaternion2"], \
-        data[key]["Quaternion3"], data[key]["Quaternion4"] ]).T
-
-    return Trajectory(timestamps, positions, attitudes)
-
-def format_navigation_series(data: Dict):
-    aps_timestamps = data["APS"]["Epoch"].to_numpy()
-    aps_series = np.stack([ data["APS"]["UTM Northing"], \
-        data["APS"]["UTM Easting"], data["APS"]["Depth"] ]).T
-
-    gyro_timestamps = data["Gyroscope"]["Epoch"].to_numpy()
-    gyro_series = np.stack([ data["Gyroscope"]["Roll"], \
-        data["Gyroscope"]["Pitch"], data["Gyroscope"]["Heading"] ]).T
-
-    gyro_series = gyro_series * np.pi / 180
-
-    aps = DataSeries(aps_timestamps, aps_series)
-    gyro = DataSeries(gyro_timestamps, gyro_series)
-
-    return aps, gyro
-
-def estimate_camera_trajectory(aps, gyro, lever_arms, declination):
+def temporal_alignment(traj_from: Trajectory, traj_to: Trajectory, \
+    threshold: float=0.3, bias: float=0.0):
     """
     """
-    K = len(aps.timestamps)
+    traj_from = copy.deepcopy(traj_from)
+    traj_to = copy.deepcopy(traj_to)
 
-    cam_attitudes = np.zeros((K, 4))
-    cam_timestamps = np.zeros(K)
+    traj_from.add_time_bias(bias)
 
-    cam_attitudes = quaternion.as_quat_array(cam_attitudes)
-    lever_arms = utilities.vector_to_quaternion(lever_arms)
+    # Perform matching.
+    matching = dynamic_timestamp_match(traj_from.timestamps, \
+        traj_to.timestamps, delta=threshold)
 
-    q_dec = utilities.quaternion_from_axis_angle(np.array([ 0.0, 1.0, 0.0 ]), \
-        declination)
+    # Create arrays.
+    matches = np.array(list(matching.items()))
+    matches_from = matches[:, 0]
+    matches_to = matches[:, 1]
+
+    # Get matching indices for trajectories.
+    m, n = matches_from.shape[0], matches_to.shape[0]
+    assert m == n, "Size of matches is inconsistent."
+    indices_from, indices_to = np.empty(m, dtype=int), np.empty(n, dtype=int)
+    for i, (match_from, match_to) in enumerate(zip(matches_from, matches_to)):
+        index_from = np.where(traj_from.timestamps == match_from)[0]
+        index_to = np.where(traj_to.timestamps == match_to)[0]
+        indices_from[i] = index_from[0]
+        indices_to[i] = index_to[0]
+        assert len(index_from) == 1, \
+            "Invalid matches from: {0}".format(index_from)
+        assert len(index_to) == 1, \
+            "Invalid matches to: {0}".format(index_to)
+
+    # Sort indices.
+    indices_from = np.sort(indices_from)
+    indices_to = np.sort(indices_to)
+
+    # Take the values for the matched indices.
+    traj_from.timestamps = np.take(traj_from.timestamps, indices_from, axis=0)
+    traj_from.positions = np.take(traj_from.positions, indices_from, axis=0)
+    traj_from.attitudes = np.take(traj_from.attitudes, indices_from, axis=0)
+
+    traj_to.timestamps = np.take(traj_to.timestamps, indices_to, axis=0)
+    traj_to.positions = np.take(traj_to.positions, indices_to, axis=0)
+    traj_to.attitudes = np.take(traj_to.attitudes, indices_to, axis=0)
+
+    return traj_from, traj_to
+
+def spatial_alignment(from_traj: Trajectory, to_traj: Trajectory):
+    """
+    """
+    assert len(from_traj.positions.shape) == 2, \
+        "Trajectory must be a m x n array."
+    assert from_traj.positions.shape == to_traj.positions.shape, \
+        "Trajectory and reference must have the same shape."
+
+    from_points = from_traj.positions
+    to_points = to_traj.positions
     
-    for k in range(K):
-        aps_timestamp = aps.timestamps[k]
-        aps_position = aps.series[k]
+    N, m = from_points.shape
+    
+    mean_from = from_points.mean(axis = 0)
+    mean_to = to_points.mean(axis = 0)
+    
+    delta_from = from_points - mean_from # m x n 
+    delta_to = to_points - mean_to       # m x n 
+    
+    sigma_from = (delta_from * delta_from).sum(axis = 1).mean()
+    sigma_to = (delta_to * delta_to).sum(axis = 1).mean()
+    
+    cov_matrix = delta_to.T.dot(delta_from) / N
+    
+    U, d, V_t = np.linalg.svd(cov_matrix, full_matrices = True)
+    cov_rank = np.linalg.matrix_rank(cov_matrix)
+    S = np.eye(m)
+    
+    if cov_rank >= m - 1 and np.linalg.det(cov_matrix) < 0:
+        S[m-1, m-1] = -1
+    elif cov_rank < m-1:
+        raise ValueError("colinearility detected in covariance matrix:\n{}"\
+            .format(cov_matrix))
+    
+    R = U.dot(S).dot(V_t)
+    c = (d * S.diagonal()).sum() / sigma_from
+    t = mean_to - c*R.dot(mean_from)
+    
+    return c, R, t
 
-        cam_timestamps[k] = aps_timestamp
+def optimize(keyframes, estimates, config):
+    # Temporal matching.
+    matched_keyframes, matched_estimates = temporal_alignment( \
+        keyframes, estimates, config.threshold, config.bias)
 
-        j, _ = utilities.closest_point(aps_timestamp, gyro.timestamps)
-        gyro_timestamp = gyro.timestamps[j]
-        gyro_attitude = gyro.series[j]
+    # If local window - Truncate matched keyframes and estimates.
+    if config.window:
+        matched_keyframes = matched_keyframes.get_windowed_trajectory( \
+            config.window_start, config.window_length)
+        matched_estimates = matched_estimates.get_windowed_trajectory( \
+            config.window_start, config.window_length)
 
-        q_roll = utilities.quaternion_from_axis_angle( \
-            np.array([ 1.0, 0.0, 0.0 ]), gyro_attitude[0])
-        q_pitch = utilities.quaternion_from_axis_angle( \
-            np.array([ 0.0, 1.0, 0.0 ]), gyro_attitude[1])
-        q_yaw = utilities.quaternion_from_axis_angle( \
-            np.array([ 0.0, 0.0, 1.0 ]), gyro_attitude[2])
+    # Spatial alignment.
+    scale, rotation, translation = spatial_alignment(matched_keyframes, \
+        matched_estimates)
 
-        q_body = q_roll * q_pitch * q_yaw
+    rotation = quat.from_rotation_matrix(rotation)
 
-        # Rotate lever arms and direction vectors.
-        lever_arms[k]  = q_body * lever_arms[k] * q_body.conjugate()
+    # Apply transform.
+    matched_keyframes.apply_SE3_transform(rotation, translation)
 
-        q_cam = q_dec * q_body
+    # Add to results.
+    result = OptimizationResult(config.bias, scale, rotation, \
+        translation, matched_keyframes, matched_estimates)
 
-        cam_attitudes[k] = q_cam
-        
-    lever_arms = utilities.quaternion_to_vector(lever_arms)
-    cam_attitudes = quaternion.as_float_array(cam_attitudes)
-
-    cam_positions = aps.series + lever_arms
-
-    cam_trajectory = Trajectory(cam_timestamps, cam_positions, cam_attitudes)
-
-    return cam_trajectory
-
-def georeference_optimization(data: Dict):
-    # Extract SLAM trajectories.
-    keyframes = format_slam_trajectory(data, "Keyframes")
-    frames = format_slam_trajectory(data, "Frames")
-
-    # Extract navigation data series.
-    aps, gyro = format_navigation_series(data)
-
-    # Set up sensor configuration.
-    lever_arm = np.array([ 2.00, 0.21, 1.40 ])
-    declination = 48 * np.pi / 180
-    lever_arms = np.tile(lever_arm, ( len(aps.timestamps), 1 ))
-
-    # Estimate camera positions from APS and gyroscope measurements.
-    estimates = estimate_camera_trajectory(aps, gyro, lever_arms, declination)
-        
-    # Alignment, temporal and spatial.
-    matched_keyframes, matched_estimates = alignment.temporal_alignment( \
-        keyframes, estimates)
-    scale, rotation, translation = alignment.spatial_alignment( \
-        matched_keyframes, matched_estimates)
-
-    # Georeference keyframe trajectory, frame trajectory, and map.
-    keyframes.apply_SE3_transform(rotation, translation)
-    frames.apply_SE3_transform(rotation, translation)
-
-    # Load map.
-    map = data["Map"].load()
-
-    # Visualize trajectories.
-    fig1, ax1 = plot_3D_trajectory(aps.series, \
-        label="Transducer", xlabel= "Northing", ylabel="Easting", \
-        zlabel="Depth", title="Trajectory")
-    ax1.plot(estimates.positions[:, 0], estimates.positions[:, 1], \
-        estimates.positions[:, 2], label="Camera")
-    ax1.plot(keyframes.positions[:, 0], keyframes.positions[:, 1], \
-        keyframes.positions[:, 2], label="Keyframe")
-    ax1.plot(frames.positions[:, 0], frames.positions[:, 1], \
-        frames.positions[:, 2], label="Frame")
-    ax1.legend()
-   
-    # TODO: Save to file.
-
+    return result

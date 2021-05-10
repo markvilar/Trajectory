@@ -13,6 +13,7 @@ numpy = ">=1.13"
 numpy-quaternion = "*"
 pandas = "*"
 scipy = "*"
+ssdts_matching = "*"
 
 [requires]
 python_version = "3.9"
