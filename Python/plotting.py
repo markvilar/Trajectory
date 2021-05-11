@@ -37,7 +37,7 @@ def set_axes_equal(ax):
     ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
 
 
-def plot_3D_line(x: np.array, y: np.array, z: np.array, \
+def plot_3D_line(x: np.array, y: np.array, z: np.array, color: str="b", \
     figsize: Tuple=(6, 6), label: str="", xlabel: str="", ylabel: str="", \
     zlabel: str="", title: str="", legend: bool=False, equal_axes: bool=False):
     """
@@ -46,7 +46,7 @@ def plot_3D_line(x: np.array, y: np.array, z: np.array, \
     """
     fig, ax = plt.subplots(figsize=figsize)
     ax = fig.add_subplot(111, projection='3d')
-    ax.plot(x, y, z, label=label)
+    ax.plot(x, y, z, label=label, color=color)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_zlabel(zlabel)

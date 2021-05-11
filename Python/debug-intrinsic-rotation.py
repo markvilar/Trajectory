@@ -9,59 +9,95 @@ import quaternion as quat
 from utilities import quat_from_axis_angle, vec3_to_quat, quat_to_vec3
 
 def main():
+
+    # -------------------------------------------------------------------------
+    # ---- Camera -------------------------------------------------------------
+    # -------------------------------------------------------------------------
+    
+    # Rotations.
     alpha_x = 0.0
     alpha_y = 90.0 - 48.0
     alpha_z = 90.0
 
-    q_x = quat_from_axis_angle(np.array([ 1.0, 0.0, 0.0]), \
+    # Translation.
+    b_t_c = np.array([ 2.0, 0.21, 1.40 ])
+
+    q_x = quat_from_axis_angle(np.array([ 1.0, 0.0, 0.0 ]), \
         alpha_x  * np.pi / 180.0)
-    q_y = quat_from_axis_angle(np.array([ 0.0, 1.0, 0.0]), \
+    q_y = quat_from_axis_angle(np.array([ 0.0, 1.0, 0.0 ]), \
         alpha_y  * np.pi / 180.0)
-    q_z = quat_from_axis_angle(np.array([ 0.0, 0.0, 1.0]), \
+    q_z = quat_from_axis_angle(np.array([ 0.0, 0.0, 1.0 ]), \
         alpha_z * np.pi / 180.0)
 
-    q_bc = q_x * q_y * q_z
+    b_q_c = q_x * q_y * q_z
 
-    #q_bc = q_cb.conjugate() / ( np.norm(q_cb) * np.norm(q_cb) )
+    # Origin and unit vectors in camera coordinate system.
+    c_p_c = np.array([ 0.0, 0.0, 0.0 ])
+    c_u_x = np.array([ 1.0, 0.0, 0.0 ])
+    c_u_y = np.array([ 0.0, 1.0, 0.0 ])
+    c_u_z = np.array([ 0.0, 0.0, 1.0 ])
+    c_u_x = vec3_to_quat(c_u_x)
+    c_u_y = vec3_to_quat(c_u_y)
+    c_u_z = vec3_to_quat(c_u_z)
 
-    # Point in camera coordinate system.
-    p_c = np.array([ 1.0, 2.0, 3.0 ])
-    v_cx = np.array([ 1.0, 0.0, 0.0 ])
-    v_cy = np.array([ 0.0, 1.0, 0.0 ])
-    v_cz = np.array([ 0.0, 0.0, 1.0 ])
+    # Translate and rotate from camera to body.
+    b_p_c = c_p_c + b_t_c
+    b_u_x = b_q_c * c_u_x * b_q_c.conjugate()
+    b_u_y = b_q_c * c_u_y * b_q_c.conjugate()
+    b_u_z = b_q_c * c_u_z * b_q_c.conjugate()
 
-    # Camera coordinate system unit vectors.
-    v_cx = vec3_to_quat(v_cx)
-    v_cy = vec3_to_quat(v_cy)
-    v_cz = vec3_to_quat(v_cz)
-    p_c = vec3_to_quat(p_c)
+    # -------------------------------------------------------------------------
+    # ---- Body ---------------------------------------------------------------
+    # -------------------------------------------------------------------------
+    
+    # Body frame orientation.
+    b_t = np.array([ 1.0, 2.0, 3.0 ])
+    roll = 20
+    pitch = 30
+    yaw = 145
 
-    # Rotate from camera to body.
-    v_bx = q_bc * v_cx * q_bc.conjugate()
-    v_by = q_bc * v_cy * q_bc.conjugate()
-    v_bz = q_bc * v_cz * q_bc.conjugate()
-    p_b = q_bc * p_c * q_bc.conjugate()
+    q_roll = quat_from_axis_angle(np.array([ 1.0, 0.0, 0.0 ]), \
+        roll * np.pi / 180.0)
+    q_pitch = quat_from_axis_angle(np.array([ 0.0, 1.0, 0.0 ]), \
+        pitch * np.pi / 180.0)
+    q_yaw = quat_from_axis_angle(np.array([ 0.0, 0.0, 1.0 ]), \
+        yaw * np.pi / 180.0)
 
-    # Extract vectors.
-    v_bx = quat_to_vec3(v_bx)
-    v_by = quat_to_vec3(v_by)
-    v_bz = quat_to_vec3(v_bz)
-    p_b = quat_to_vec3(p_b)
+    w_q_b = q_roll * q_pitch * q_yaw
 
-    print("Unit vector x: {0}".format(v_bx))
-    print("Unit vector y: {0}".format(v_by))
-    print("Unit vector z: {0}".format(v_bz))
-    print("Point:         {0}".format(p_b))
+    # Origin and unit vectors in camera coordinate system.
+    b_origin = np.array([ 0.0, 0.0, 0.0 ])
+    b_v_x = np.array([ 1.0, 0.0, 0.0 ])
+    b_v_y = np.array([ 0.0, 1.0, 0.0 ])
+    b_v_z = np.array([ 0.0, 0.0, 1.0 ])
 
-    fig1, ax1 = plt.subplots(figsize=(8, 8))
+    """
+    b_origin = vec3_to_quat(c_p)
+    b_u_x = vec3_to_quat(c_u_x)
+    b_u_y = vec3_to_quat(c_u_y)
+    b_u_z = vec3_to_quat(c_u_z)
+    """
+    b_u_x = quat_to_vec3(b_u_x)
+    b_u_y = quat_to_vec3(b_u_y)
+    b_u_z = quat_to_vec3(b_u_z)
+
+    fig1, ax1 = plt.subplots(figsize=(8, 5))
     ax1 = fig1.add_subplot(111, projection='3d')
-    ax1.quiver(0, 0, 0, 1, 0, 0, color="y", label="Body")
-    ax1.quiver(0, 0, 0, 0, 1, 0, color="y")
-    ax1.quiver(0, 0, 0, 0, 0, 1, color="y")
-    ax1.quiver(0, 0, 0, v_bx[0], v_bx[1], v_bx[2], color="r", label=r"$x_{c}$")
-    ax1.quiver(0, 0, 0, v_by[0], v_by[1], v_by[2], color="g", label=r"$y_{c}$")
-    ax1.quiver(0, 0, 0, v_bz[0], v_bz[1], v_bz[2], color="b", label=r"$z_{c}$")
-    ax1.scatter(p_b[0], p_b[1], p_b[2], label="Point")
+
+    ax1.quiver(b_o_b[0], b_o_b[1], b_o_b[2], b_v_x[0], b_v_x[1], b_v_x[2], \
+        color="r")
+    ax1.quiver(b_o_b[0], b_o_b[1], b_o_b[2], b_v_y[0], b_v_y[1], b_v_y[2], \
+        color="g")
+    ax1.quiver(b_o_b[0], b_o_b[1], b_o_b[2], b_v_z[0], b_v_z[1], b_v_z[2], \
+        color="b")
+
+    ax1.quiver(b_p_c[0], b_p_c[1], b_p_c[2], b_u_x[0], b_u_x[1], b_u_x[2], \
+        color="r")
+    ax1.quiver(b_p_c[0], b_p_c[1], b_p_c[2], b_u_y[0], b_u_y[1], b_u_z[2], \
+        color="g")
+    ax1.quiver(b_p_c[0], b_p_c[1], b_p_c[2], b_u_z[0], b_u_z[1], b_u_z[2], \
+        color="b")
+
     ax1.set_xlabel(r"$x_{b}$")
     ax1.set_ylabel(r"$y_{b}$")
     ax1.set_zlabel(r"$z_{b}$")
@@ -69,8 +105,8 @@ def main():
     ax1.set_xlim([-5, 5])
     ax1.set_ylim([-5, 5])
     ax1.set_zlim([-5, 5])
-    ax1.legend()
 
     plt.show()
+
 if __name__ == "__main__":
     main()

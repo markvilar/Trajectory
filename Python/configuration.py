@@ -37,7 +37,9 @@ class SensorConfiguration:
             self.orientation[1])
         q_z = quat_from_axis_angle( np.array([0.0, 0.0, 1.0]), \
             self.orientation[2])
-        q = q_z * q_y * q_x
+
+        # Equation 3.1d
+        q = q_x * q_y * q_z
         return q
 
     def get_orientation_quat_array(self, n: int):

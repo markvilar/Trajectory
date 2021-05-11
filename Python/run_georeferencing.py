@@ -16,10 +16,20 @@ def format_trajectory(data: Dict, key: str):
     timestamps = np.array(data[key]["Timestamps"])
     positions = np.stack([ data[key]["PositionX"], data[key]["PositionY"], \
         data[key]["PositionZ"] ]).T
+    attitudes = np.stack([ data[key]["Quaternion4"], data[key]["Quaternion1"], \
+        data[key]["Quaternion2"], data[key]["Quaternion3"] ]).T
+
+    return Trajectory(timestamps, positions, attitudes)
+
+def format_ground_truth(data: Dict, key: str):
+    timestamps = np.array(data[key]["Timestamps"])
+    positions = np.stack([ data[key]["PositionX"], data[key]["PositionY"], \
+        data[key]["PositionZ"] ]).T
     attitudes = np.stack([ data[key]["Quaternion1"], data[key]["Quaternion2"], \
         data[key]["Quaternion3"], data[key]["Quaternion4"] ]).T
 
     return Trajectory(timestamps, positions, attitudes)
+   
 
 def format_data(args):
     # Optimization configuration.
@@ -37,7 +47,7 @@ def format_data(args):
     data["Keyframes"]   = pd.read_csv(args.slam + args.keyframes)
     data["Map"]         = read_msgpack(args.slam + args.map)
 
-    groundtruth = format_trajectory(data, "Ground-Truth")
+    groundtruth = format_ground_truth(data, "Ground-Truth")
     keyframes = format_trajectory(data, "Keyframes")
     frames = format_trajectory(data, "Frames")
     map = data["Map"].load()

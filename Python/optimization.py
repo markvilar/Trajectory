@@ -105,21 +105,21 @@ def spatial_alignment(from_traj: Trajectory, to_traj: Trajectory):
     
     return c, R, t
 
-def optimize(keyframes, estimates, config):
+def optimize(keyframes, ground_truth, config):
     # Temporal matching.
-    matched_keyframes, matched_estimates = temporal_alignment( \
-        keyframes, estimates, config.threshold, config.bias)
+    matched_keyframes, matched_ground_truth = temporal_alignment( \
+        keyframes, ground_truth, config.threshold, config.bias)
 
     # If local window - Truncate matched keyframes and estimates.
     if config.window:
         matched_keyframes = matched_keyframes.get_windowed_trajectory( \
             config.window_start, config.window_length)
-        matched_estimates = matched_estimates.get_windowed_trajectory( \
+        matched_ground_truth = matched_ground_truth.get_windowed_trajectory( \
             config.window_start, config.window_length)
 
     # Spatial alignment.
     scale, rotation, translation = spatial_alignment(matched_keyframes, \
-        matched_estimates)
+        matched_ground_truth)
 
     rotation = quat.from_rotation_matrix(rotation)
 
@@ -128,6 +128,6 @@ def optimize(keyframes, estimates, config):
 
     # Add to results.
     result = OptimizationResult(config.bias, scale, rotation, \
-        translation, matched_keyframes, matched_estimates)
+        translation, matched_keyframes, matched_ground_truth)
 
     return result
