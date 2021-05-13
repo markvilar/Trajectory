@@ -48,13 +48,16 @@ class SensorConfiguration:
         return qs
 
 class Configuration:
-    def __init__(self, optim: OptimizationConfiguration,  slam_input_dir: str, \
-        output_dir: str, ground_truth_file: str, keyframes_file: str, \
-        frames_file: str, map_file: str, save_output: bool, \
-        show_figures: bool, save_figures: bool):
+    def __init__(self, optim: OptimizationConfiguration, name: str, \
+        slam_input_dir: str, output_dir: str, ground_truth_file: str, \
+        keyframes_file: str, frames_file: str, map_file: str, \
+        save_output: bool, show_figures: bool, save_figures: bool):
 
         # Optimization configuration.
         self.optim = optim
+
+        # Generic.
+        self.name = name
 
         # Directories.
         self.slam_input_dir = slam_input_dir

@@ -143,9 +143,10 @@ class Trajectory():
         # Create pandas data frame.
         table = np.hstack(( self.timestamps[:, np.newaxis], self.positions, \
             self.attitudes ))
-        table = pd.DataFrame(table, columns=["Timestamps", "PositionX", \
-            "PositionY", "PositionZ", "Quaternion1", "Quaternion2", \
-            "Quaternion3", "Quaternion4", ])
+        table = pd.DataFrame(table, columns=["Timestamp", "PositionX", \
+            "PositionY", "PositionZ", "QuaternionReal", \
+            "QuaternionImaginary1", "QuaternionImaginary2", \
+            "QuaternionImaginary3", ])
         
         # Save.
         table.to_csv(path)

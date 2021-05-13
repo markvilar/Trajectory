@@ -13,20 +13,24 @@ from georeference import georeference
 from utilities import closest_point
 
 def format_trajectory(data: Dict, key: str):
-    timestamps = np.array(data[key]["Timestamps"])
+    timestamps = np.array(data[key]["Timestamp"])
     positions = np.stack([ data[key]["PositionX"], data[key]["PositionY"], \
         data[key]["PositionZ"] ]).T
-    attitudes = np.stack([ data[key]["Quaternion4"], data[key]["Quaternion1"], \
-        data[key]["Quaternion2"], data[key]["Quaternion3"] ]).T
+    attitudes = np.stack([ data[key]["QuaternionReal"], 
+        data[key]["QuaternionImaginary1"], \
+        data[key]["QuaternionImaginary2"], \
+        data[key]["QuaternionImaginary3"] ]).T
 
     return Trajectory(timestamps, positions, attitudes)
 
 def format_ground_truth(data: Dict, key: str):
-    timestamps = np.array(data[key]["Timestamps"])
+    timestamps = np.array(data[key]["Timestamp"])
     positions = np.stack([ data[key]["PositionX"], data[key]["PositionY"], \
         data[key]["PositionZ"] ]).T
-    attitudes = np.stack([ data[key]["Quaternion1"], data[key]["Quaternion2"], \
-        data[key]["Quaternion3"], data[key]["Quaternion4"] ]).T
+    attitudes = np.stack([ data[key]["QuaternionReal"], \
+        data[key]["QuaternionImaginary1"], \
+        data[key]["QuaternionImaginary2"], \
+        data[key]["QuaternionImaginary3"] ]).T
 
     return Trajectory(timestamps, positions, attitudes)
    
@@ -37,9 +41,9 @@ def format_data(args):
         args.win, args.win_start, args.win_length)
 
     # Configuration.
-    config = Configuration(optim, args.slam, args.output, args.gt, \
-        args.keyframes, args.frames, args.map, args.save, args.show_fig, \
-        args.save_fig)
+    config = Configuration(optim, args.name, args.slam, args.output, \
+        args.gt, args.keyframes, args.frames, args.map, args.save, \
+        args.show_fig, args.save_fig)
 
     data = {}
     data["Ground-Truth"] = pd.read_csv(args.gt)
@@ -57,7 +61,7 @@ def format_data(args):
     trajectories["Keyframes"] = keyframes
     trajectories["Frames"] = frames
 
-    return trajectories, map, config
+    return config, trajectories, map
 
 def main():
     parser = argparse.ArgumentParser(description="Georeference SLAM output \
@@ -68,6 +72,8 @@ def main():
 
     required.add_argument("--slam", type=str, help="Output directory.")
     required.add_argument("--output", type=str, help="Output directory.")
+
+    required.add_argument("--name", type=str, help="Output name.")
 
     required.add_argument("--gt", type=str, help="Groundtruth CSV file.")
     required.add_argument("--keyframes", type=str, help="Keyframes CSV file.")
@@ -92,8 +98,8 @@ def main():
     optional.add_argument("--win_length", type=int, default=30, \
         help="Window length.")
 
-    trajectories, map, config = format_data(parser.parse_args())
-    georeference(trajectories, map, config)
+    config, trajectories, map = format_data(parser.parse_args())
+    georeference(config, trajectories, map)
 
 if __name__ == "__main__":
     main()

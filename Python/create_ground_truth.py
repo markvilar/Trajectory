@@ -22,8 +22,6 @@ def format_navigation_series(data: Dict):
 
     gyro_series = gyro_series * np.pi / 180
 
-    print(gyro_series[:10])
-
     aps = DataSeries(aps_timestamps, aps_series)
     gyro = DataSeries(gyro_timestamps, gyro_series)
 
@@ -88,7 +86,7 @@ def estimate_camera_trajectory(aps: DataSeries, gyro: DataSeries, \
 
 
 def main():
-    declination = 40.0 # 48.0
+    declination = 45.0
     camera_translation = np.array([ 2.00, 0.21, 1.40 ])
     camera_orientation = np.array([ 0.00, 90.0 - declination, 90.0 ]) \
         * np.pi / 180

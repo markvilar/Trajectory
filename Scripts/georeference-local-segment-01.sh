@@ -9,5 +9,5 @@ python Python/run_georeferencing.py \
     --bias 0.0 \
     --window \
     --win_start 0 \
-    --win_length 30 \
+    --win_length 20 \
     --show_fig \
