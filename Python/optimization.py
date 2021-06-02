@@ -10,13 +10,15 @@ from utilities import closest_point
 
 class OptimizationResult:
     def __init__(self, bias, scale, rotation, translation, frames, \
-        ground_truth):
+        ground_truth, win_frames=None, win_ground_truth=None):
         self.bias = bias
         self.scale = scale
         self.rotation = rotation
         self.translation = translation
         self.matched_frames = frames
         self.matched_ground_truth = ground_truth
+        self.windowed_frames = win_frames
+        self.windowed_ground_truth = win_ground_truth
 
 def temporal_alignment(traj_from: Trajectory, traj_to: Trajectory, \
     threshold: float=0.3, bias: float=0.0):
@@ -112,22 +114,32 @@ def optimize(config, frames, ground_truth):
 
     # If local window - Truncate matched keyframes and estimates.
     if config.window:
-        matched_frames= matched_frames.get_windowed_trajectory( \
+        windowed_frames = matched_frames.get_windowed_trajectory( \
             config.window_start, config.window_length)
-        matched_ground_truth = matched_ground_truth.get_windowed_trajectory( \
+        windowed_ground_truth = matched_ground_truth.get_windowed_trajectory( \
             config.window_start, config.window_length)
-
-    # Spatial alignment.
-    scale, rotation, translation = spatial_alignment(matched_frames, \
-        matched_ground_truth)
+        # Spatial alignment.
+        scale, rotation, translation = spatial_alignment(windowed_frames, \
+            windowed_ground_truth)
+    else:
+        scale, rotation, translation = spatial_alignment(matched_frames, \
+            matched_ground_truth)
 
     rotation = quat.from_rotation_matrix(rotation)
 
     # Apply transform.
+    if config.window:
+        windowed_frames.apply_SE3_transform(rotation, translation)
+
     matched_frames.apply_SE3_transform(rotation, translation)
 
     # Add to results.
-    result = OptimizationResult(config.bias, scale, rotation, \
-        translation, matched_frames, matched_ground_truth)
+    if config.window:
+        result = OptimizationResult(config.bias, scale, rotation, \
+            translation, matched_frames, matched_ground_truth, \
+            windowed_frames, windowed_ground_truth)
+    else:
+        result = OptimizationResult(config.bias, scale, rotation, \
+            translation, matched_frames, matched_ground_truth)
 
     return result

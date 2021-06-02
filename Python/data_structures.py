@@ -1,5 +1,6 @@
 import os.path
 
+import copy
 import msgpack
 import numpy as np
 import pandas as pd
@@ -35,7 +36,6 @@ class MapUnpacker:
             landmarks = data["landmarks"]
             return Map(keyframes, landmarks)
 
-
 class Map:
     def __init__(self, keyframes, landmarks):
         """
@@ -67,6 +67,9 @@ class Map:
 
         return Landmarks(landmarks)
 
+    def get_keyframes(self):
+        return self.keyframes
+
 class Landmarks():
     def __init__(self, landmarks):
         self.landmarks = landmarks
@@ -91,19 +94,39 @@ class Landmarks():
         table.to_csv(path)
 
 class Trajectory():
-    def __init__(self, timestamps: np.ndarray, positions: np.ndarray, \
-        attitudes: np.ndarray):
+    def __init__(self, timestamps: np.ndarray=None, \
+        positions: np.ndarray=None, attitudes: np.ndarray=None):
         """
         """
-        self.timestamps = timestamps
-        self.positions = positions
-        self.attitudes = attitudes
+        self.timestamps = copy.deepcopy(timestamps)
+        self.positions = copy.deepcopy(positions)
+        self.attitudes = copy.deepcopy(attitudes)
 
     def __getitem__(self, key):
         return self.positions[key]
 
     def add_time_bias(self, bias: float):
         self.timestamps += bias
+
+    def get_timestamps(self):
+        return self.timestamps
+
+    def get_positions(self):
+        return self.positions
+
+    def get_attitudes(self):
+        return vec4_array_to_quat_array(self.attitudes)
+
+    def get_homogeneous_transforms(self):
+        qs = vec4_array_to_quat_array(self.attitudes)
+        ts = self.positions
+        
+        Rs = np.zeros(( len(qs), 4, 4 ))
+        Rs[:, 0:3, 0:3] = quat.as_rotation_matrix(qs)
+        Rs[:, 0:3, 3] = ts
+        Rs[:, 3, 3] = 1.0
+    
+        return Rs
 
     def get_windowed_trajectory(self, start: int, length: int):
         assert start >= 0, "Trajectory window start must be positive."
@@ -135,6 +158,18 @@ class Trajectory():
 
         self.positions = p + translation
         self.attitudes = a
+
+    def load_from_csv(self, path: str):
+        df = pd.read_csv(path)
+
+        self.timestamps = df["Timestamp"].to_numpy()
+        self.positions = np.stack([ df["PositionX"], \
+            df["PositionY"], \
+            df["PositionZ"] ]).T
+        self.attitudes = np.stack([ df["QuaternionReal"], \
+            df["QuaternionImaginary1"], \
+            df["QuaternionImaginary2"], \
+            df["QuaternionImaginary3"] ]).T
 
     def save_as_csv(self, path: str):
         """
