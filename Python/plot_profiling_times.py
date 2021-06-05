@@ -10,8 +10,8 @@ from data_structures import Map, MapUnpacker
 
 def main():
     paths = {}
-    paths["Processing"] = "./Data/SLAM/Comparison/Processing-Times.csv"
-    paths["Tracking"] = "./Data/SLAM/Comparison/Tracking-Times.csv"
+    paths["Processing"] = "./Data/SLAM/Processing-Times.csv"
+    paths["Tracking"] = "./Data/SLAM/Tracking-Times.csv"
 
     time_limits = [ 1611313305.76, 1611313400.87 ]
 
@@ -24,15 +24,15 @@ def main():
     processing = {}
     processing["Raw"] = processing_times["RAW"]
     processing["BLF"] = processing_times["BLF"]
-    processing["HE + BLF"] = processing_times["HE"]
-    processing["CLAHE + BLF"] = processing_times["CLAHE"]
+    processing["HE-BLF"] = processing_times["HE"]
+    processing["CLAHE-BLF"] = processing_times["CLAHE"]
     processing["UIENet"] = processing_times["UIENet"]
 
     tracking = {}
     tracking["Raw"] = tracking_times["RAW"]
     tracking["BLF"] = tracking_times["BLF"]
-    tracking["HE + BLF"] = tracking_times["HE"]
-    tracking["CLAHE + BLF"] = tracking_times["CLAHE"]
+    tracking["HE-BLF"] = tracking_times["HE"]
+    tracking["CLAHE-BLF"] = tracking_times["CLAHE"]
     tracking["UIENet"] = tracking_times["UIENet"]
 
     # Processing times.

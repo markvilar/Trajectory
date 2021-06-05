@@ -112,13 +112,16 @@ def visualize_alignment_results(config: Configuration, trajectories: Dict, \
     fig2, ax2 = plt.subplots(nrows=3, ncols=1, figsize=(7, 4.5))
     fig2.tight_layout(pad=2.0, w_pad=2.0, h_pad=2.0)
 
+    # Rotation 1.
     ax2[0].plot(estimate.timestamps, angles_estimate[:, 0])
     ax2[0].plot(ground_truth.timestamps, angles_ground_truth[:, 0])
     ax2[0].set_xlim(lims_time)
-    ax2[0].set_ylim(lims_ang[0])
+    ax2[0].set_ylim([ 80, 220  ])
+    #ax2[0].set_ylim(lims_ang[0])
     ax2[0].set_xlabel(r"Time, $t$ $[s]$")
     ax2[0].set_ylabel(r"Euler X, $r_{x}$ $[\text{deg}]$")
 
+    # Rotation 2.
     ax2[1].plot(estimate.timestamps, angles_estimate[:, 1])
     ax2[1].plot(ground_truth.timestamps, angles_ground_truth[:, 1])
     ax2[1].set_xlim(lims_time)
@@ -126,6 +129,7 @@ def visualize_alignment_results(config: Configuration, trajectories: Dict, \
     ax2[1].set_xlabel(r"Time, $t$ $[s]$")
     ax2[1].set_ylabel(r"Euler Y, $r_{y}$ $[\text{deg}]$")
 
+    # Rotation 3.
     ax2[2].plot(estimate.timestamps, angles_estimate[:, 2], label=label_est)
     ax2[2].plot(ground_truth.timestamps, angles_ground_truth[:, 2], \
         label=label_gt)

@@ -13,9 +13,9 @@ def main():
     dvl_path = "./Data/Navigation/Dive-01-ROV-DVL.csv"
     figure_path = "./Data/Output/Comparison-Heading-Altitude.pdf"
 
-    time_limits = [ 1611313305.76, 1611313696.87 ]
-    heading_limits = [ 70, 240 ]
-    altitude_limits = [ 0, 3 ]
+    time_limits = [ 1611313305.76, 1611313730 ]
+    heading_limits = [ 0, 360 ]
+    altitude_limits = [ 0, 3.3 ]
 
     gyro = pd.read_csv(gyro_path)
     dvl = pd.read_csv(dvl_path)

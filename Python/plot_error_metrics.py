@@ -11,6 +11,8 @@ from error import compute_absolute_error, compute_relative_error
 
 def main():
     directory = "./Data/SLAM/Comparison-Georeferenced/"
+    time_limits = [ 1611313305.76, 1611313730 ]
+
     est_paths = {}
     est_paths["RAW"]   = directory + "RAW-Matched-Keyframes.csv"
     est_paths["BLF"]   = directory + "BLF-Matched-Keyframes.csv"
@@ -56,9 +58,9 @@ def main():
         gt_trajs["RAW"])
     absolute_errors["BLF"] = compute_absolute_error(est_trajs["BLF"], \
         gt_trajs["BLF"])
-    absolute_errors["HE + BLF"] = compute_absolute_error(est_trajs["HE"], \
+    absolute_errors["HE-BLF"] = compute_absolute_error(est_trajs["HE"], \
         gt_trajs["HE"])
-    absolute_errors["CLAHE + BLF"] = compute_absolute_error(est_trajs["CLAHE"], \
+    absolute_errors["CLAHE-BLF"] = compute_absolute_error(est_trajs["CLAHE"], \
         gt_trajs["CLAHE"])
     absolute_errors["UIENet"] = compute_absolute_error(est_trajs["UIENet"], \
         gt_trajs["UIENet"])
@@ -70,9 +72,9 @@ def main():
         gt_trajs["RAW"], rpe_dist, rpe_max_dist)
     relative_errors["BLF"] = compute_relative_error(est_trajs["BLF"], \
         gt_trajs["BLF"], rpe_dist, rpe_max_dist)
-    relative_errors["HE + BLF"] = compute_relative_error(est_trajs["HE"], \
+    relative_errors["HE-BLF"] = compute_relative_error(est_trajs["HE"], \
         gt_trajs["HE"], rpe_dist, rpe_max_dist)
-    relative_errors["CLAHE + BLF"] = compute_relative_error( \
+    relative_errors["CLAHE-BLF"] = compute_relative_error( \
         est_trajs["CLAHE"], gt_trajs["CLAHE"], rpe_dist, rpe_max_dist)
     relative_errors["UIENet"] = compute_relative_error(est_trajs["UIENet"], \
         gt_trajs["UIENet"], rpe_dist, rpe_max_dist)
@@ -86,10 +88,8 @@ def main():
         ax1[1].set_ylabel("RMSE, rot. [deg]")
     ax1[0].set_xlabel("Time, $t$ [s]")
     ax1[1].set_xlabel("Time, $t$ [s]")
-    ax1[0].set_xlim(est_trajs["HE"].get_timestamps()[0], \
-        est_trajs["HE"].get_timestamps()[-10])
-    ax1[1].set_xlim(est_trajs["HE"].get_timestamps()[0], \
-        est_trajs["HE"].get_timestamps()[-10])
+    ax1[0].set_xlim(time_limits)
+    ax1[1].set_xlim(time_limits)
     lg1 = fig1.legend(bbox_to_anchor=(0.69, 1.0), loc="upper center", \
         frameon=True, fancybox=False, ncol=3)
     fr1 = lg1.get_frame()
@@ -107,10 +107,8 @@ def main():
         ax2[1].set_ylabel("RMSE, rot. [deg]")
     ax2[0].set_xlabel("Time, $t$ [s]")
     ax2[1].set_xlabel("Time, $t$ [s]")
-    ax2[0].set_xlim(est_trajs["HE"].get_timestamps()[0], \
-        est_trajs["HE"].get_timestamps()[-10])
-    ax2[1].set_xlim(est_trajs["HE"].get_timestamps()[0], \
-        est_trajs["HE"].get_timestamps()[-10])
+    ax2[0].set_xlim(time_limits)
+    ax2[1].set_xlim(time_limits)
     lg2 = fig2.legend(bbox_to_anchor=(0.69, 1.0), loc="upper center", \
         frameon=True, fancybox=False, ncol=3)
     fr2 = lg2.get_frame()
