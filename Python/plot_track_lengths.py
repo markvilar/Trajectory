@@ -26,6 +26,7 @@ def main():
     fig, ax = plt.subplots(figsize=(7, 3))
     ax.boxplot(lengths.values(), labels=lengths.keys())
     ax.set_ylim([0, 10000])
+    ax.set_ylabel(r"Number of tracked frames [-]")
 
     boxprops = dict(facecolor="white", edgecolor="black", alpha=0.8)
     ax.text(0.85, 0.85, r"$N = 10$", transform=ax.transAxes, fontsize=14, \
